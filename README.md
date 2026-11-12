@@ -1,67 +1,25 @@
-# Video SRT Tool (BKggDs build)
+# Video SRT Tool
 
-Ứng dụng Android trích xuất, ghép và nhúng phụ đề (SRT/ASS/WebVTT/mov_text) vào video, kèm
-trình phát video xem trước có phụ đề, chọn track âm thanh và toàn màn hình.
+Ứng dụng Android xử lý phụ đề cho video ngay trên máy: lấy phụ đề ra khỏi video, ghép phụ đề
+rời vào video, và xem lại video kèm phụ đề.
 
-Bản này dựa trên APK gốc `Video_SRT_Tool_2.9.1` (không kèm trong repo) và được sửa lại:
-đổi gói sang `com.bkggds.videotool`, giao diện 5 ngôn ngữ, trình phát ExoPlayer tự viết,
-sửa lỗi hiển thị và làm lại hàng nút điều khiển.
+## App làm gì
 
-## Tính năng chính
+- **Nhập video** MKV hoặc MP4 từ bộ nhớ máy.
+- **Xem phụ đề có sẵn**: liệt kê mọi track phụ đề văn bản trong video (SRT, ASS/SSA, WebVTT,
+  mov_text) theo ngôn ngữ.
+- **Trích xuất phụ đề**: lưu một ngôn ngữ hoặc tất cả các track ra file phụ đề.
+- **Ghép / nhúng phụ đề**: thêm file phụ đề rời vào video, ghép nhiều track, đặt tên theo ngôn ngữ.
+- **Sửa phụ đề**: mở phụ đề trong trình soạn thảo, chỉnh nội dung rồi lưu lại.
+- **Xem trước video**: trình phát tích hợp với thanh tua, ±10 giây, tốc độ phát, chọn track âm
+  thanh, chọn phụ đề, tỷ lệ khung hình (Fit/Fill/Stretch), toàn màn hình ngang và cử chỉ chạm/kéo.
+- **Lưu file**: chọn thư mục hoặc lưu vào Downloads.
+- **Giao diện 5 ngôn ngữ**: English, 中文, 日本語, 한국어, Tiếng Việt.
 
-- Nhập video MKV/MP4, xem trước ngay trong app.
-- Trích xuất phụ đề văn bản (SRT, ASS/SSA, WebVTT, mov_text) từ video.
-- Nhúng phụ đề vào video, ghép nhiều track phụ đề.
-- Danh sách track phụ đề theo ngôn ngữ, đặt tên track theo ngôn ngữ hiện tại.
-- Trình phát: thanh tua, ±10 giây, tốc độ phát, chọn track âm thanh, chọn phụ đề,
-  tỷ lệ khung hình (Fit/Fill/Stretch), toàn màn hình ngang, cử chỉ chạm/kéo.
-- Giao diện: English, 中文, 日本語, 한국어, Tiếng Việt.
+Lưu ý: app chỉ xử lý phụ đề dạng văn bản, không chuyển được phụ đề ảnh (PGS, VobSub) thành chữ.
 
-## Cấu trúc
+## Tải và cài đặt
 
-```
-src/sources/          Mã Java (app trong com/bkggds/videotool, ffmpegkit trong com/antonkarpenko)
-libs3/                Thư viện cần để biên dịch (AndroidX Media3 1.4.1, Guava, Kotlin stdlib...)
-files.txt             Danh sách file nguồn cho javac
-build.sh              Biên dịch + đóng gói + ký APK
-repackage.py          Chèn dex vào APK gốc, đổi tên gói trong manifest/resources.arsc, đổi version
-gen_loc.py            Sinh Localization.java từ strings.tsv + tr1..tr4.tsv
-strings.tsv, tr*.tsv  Chuỗi giao diện 5 ngôn ngữ
-docs/ANALYSIS.md      Phân tích APK gốc
-```
+Tải APK ở trang Releases: https://github.com/Bkhangg/video-srt-tool/releases
 
-## Yêu cầu build
-
-- JDK 17 (hoặc mới hơn) và Android SDK: `android.jar` (API 36), `d8`, `zipalign`, `apksigner`.
-- Python 3.
-- APK gốc `Video_SRT_Tool_2.9.1.apk` đặt ở thư mục gốc (dùng làm khung: tài nguyên, manifest,
-  thư viện native và dex của ffmpegkit).
-
-`build.sh` đang trỏ tới `/root/android-sdk/android-36/android.jar`; sửa biến `AJ` nếu SDK
-của bạn ở chỗ khác.
-
-## Build
-
-```bash
-./build.sh <versionCode> <versionName>
-# ví dụ
-./build.sh 41 "3.1.1-BKggDs"
-```
-
-Kết quả: `Video_SRT_Tool_<versionName>.apk` đã ký.
-
-Khoá ký (`bkggds.keystore`) **không** nằm trong repo; build.sh dùng `--ks bkggds.keystore`
-với mật khẩu/alias riêng, hãy sửa lại hoặc tạo khoá của bạn:
-
-```bash
-keytool -genkeypair -keystore bkggds.keystore -alias bkggds -keyalg RSA -keysize 2048 \
-  -validity 10000 -storepass <pass> -keypass <pass> -dname "CN=Local Build"
-```
-
-## Ghi chú
-
-- `repackage.py` sửa trực tiếp APK gốc: thay chuỗi tên gói trong string pool của
-  `AndroidManifest.xml` (đồng thời sửa kích thước chunk gốc) và ghi đè trường tên 256 byte
-  của chunk `ResTable_package` trong `resources.arsc`; `resources.arsc` phải giữ STORED.
-- Chỉ đóng gói `arm64-v8a`.
-- `versionName` phải dài đúng 12 ký tự (giống `2.9.1-BKggDs`) do cách vá manifest.
+Yêu cầu: Android 7.0 trở lên, máy arm64-v8a.
