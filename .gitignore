@@ -1,0 +1,30 @@
+# build output
+*.apk
+*.apk.idsig
+aligned.apk
+unsigned.apk
+classes/
+dexout/
+*.class
+classlist.txt
+
+# signing keys
+*.keystore
+*.jks
+*.p12
+
+# extracted / decompiled working dirs
+extracted/
+jadx/
+jadxfb/
+cfrout/
+proc/
+smali/
+origdex/
+dex-tools*/
+*.zip
+*.jar.orig
+
+# os
+.DS_Store
+Thumbs.db
