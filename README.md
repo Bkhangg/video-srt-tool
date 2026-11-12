@@ -5,6 +5,16 @@ add separate subtitles to a video, and watch the video with subtitles.
 
 [English](#english) · [Tiếng Việt](#tiếng-việt)
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/1.jpg" width="170" alt="Screenshot 1">
+  <img src="docs/screenshots/2.jpg" width="170" alt="Screenshot 2">
+  <img src="docs/screenshots/3.jpg" width="170" alt="Screenshot 3">
+  <img src="docs/screenshots/4.jpg" width="170" alt="Screenshot 4">
+  <img src="docs/screenshots/5.jpg" width="170" alt="Screenshot 5">
+</p>
+
 ---
 
 ## English
