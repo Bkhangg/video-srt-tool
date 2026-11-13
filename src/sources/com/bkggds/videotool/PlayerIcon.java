@@ -17,6 +17,7 @@ public final class PlayerIcon extends View {
     public static final int RATIO = 5;
     public static final int FULLSCREEN = 6;
     public static final int EXIT_FULLSCREEN = 7;
+    public static final int HEADPHONES = 8;
 
     private final Paint paint = new Paint(1);
     private final Paint textPaint = new Paint(1);
@@ -143,6 +144,18 @@ public final class PlayerIcon extends View {
                 break;
             case EXIT_FULLSCREEN:
                 this.brackets(canvas, l, t, s, false);
+                break;
+            case HEADPHONES:
+                /* Headband arc with two filled earcups: the audio track button. */
+                this.paint.setStyle(Paint.Style.STROKE);
+                this.paint.setStrokeWidth(s * 0.10f);
+                this.rect.set(l + s * 0.11f, t + s * 0.10f, l + s * 0.89f, t + s * 0.90f);
+                canvas.drawArc(this.rect, 180.0f, 180.0f, false, this.paint);
+                this.paint.setStyle(Paint.Style.FILL);
+                this.rect.set(l + s * 0.06f, t + s * 0.50f, l + s * 0.29f, t + s * 0.86f);
+                canvas.drawRoundRect(this.rect, s * 0.08f, s * 0.08f, this.paint);
+                this.rect.set(l + s * 0.71f, t + s * 0.50f, l + s * 0.94f, t + s * 0.86f);
+                canvas.drawRoundRect(this.rect, s * 0.08f, s * 0.08f, this.paint);
                 break;
             default:
                 break;

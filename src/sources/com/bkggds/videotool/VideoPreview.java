@@ -58,8 +58,12 @@ public final class VideoPreview extends FrameLayout {
     private final FrameLayout frame;
     private final Handler handler;
     private final PlayerIcon play;
+    private final PlayerIcon playBtn;
     private final ExoPlayer player;
     private final PlayerIcon ratioBtn;
+    private final LinearLayout row2;
+    private final TextView rowBack;
+    private final TextView rowForward;
     private final SeekBar seek;
     private final TextView speedBtn;
     private final TextView status;
@@ -72,6 +76,7 @@ public final class VideoPreview extends FrameLayout {
     private final Runnable update;
     private final GestureDetector detector;
     private boolean detached;
+    private boolean autoplay;
     private boolean moving;
     private boolean fullscreenOn;
     private boolean ready;
@@ -93,6 +98,7 @@ public final class VideoPreview extends FrameLayout {
 
     public VideoPreview(Context context, Uri uri) {
         super(context);
+        setTag("previewPlayer");
         this.uri = uri;
         this.handler = new Handler();
         this.speed = 1.0f;
@@ -105,6 +111,8 @@ public final class VideoPreview extends FrameLayout {
                 if (VideoPreview.this.ready && VideoPreview.this.player.isPlaying() && !VideoPreview.this.seeking) {
                     VideoPreview.this.controls.setVisibility(8);
                     VideoPreview.this.topBar.setVisibility(8);
+                    VideoPreview.this.play.setVisibility(8);
+                    VideoPreview.this.subtitleInset(false);
                 }
             }
         };
@@ -133,6 +141,8 @@ public final class VideoPreview extends FrameLayout {
                     boolean isPlaying = VideoPreview.this.player.isPlaying();
                     VideoPreview.this.play.setKind(isPlaying ? PlayerIcon.PAUSE : PlayerIcon.PLAY);
                     VideoPreview.this.play.setContentDescription(Localization.tr(isPlaying ? "Pause" : "Play"));
+                    VideoPreview.this.playBtn.setKind(isPlaying ? PlayerIcon.PAUSE : PlayerIcon.PLAY);
+                    VideoPreview.this.playBtn.setContentDescription(Localization.tr(isPlaying ? "Pause" : "Play"));
                 }
                 VideoPreview.this.handler.postDelayed(this, 500L);
             }
@@ -154,7 +164,7 @@ public final class VideoPreview extends FrameLayout {
         this.subtitle.setPadding(dp(10), dp(4), dp(10), dp(4));
         this.subtitle.setVisibility(8);
         FrameLayout.LayoutParams subtitleParams = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        subtitleParams.bottomMargin = dp(64);
+        subtitleParams.bottomMargin = dp(24);
         this.frame.addView(this.subtitle, subtitleParams);
 
         this.touch = new View(context);
@@ -177,6 +187,13 @@ public final class VideoPreview extends FrameLayout {
         this.status.setPadding(dp(8), dp(8), dp(8), dp(8));
         this.status.setText(Localization.tr("Loading preview..."));
         this.frame.addView(this.status, new FrameLayout.LayoutParams(-1, -1));
+
+        /* Play/pause in the middle of the video; shown and hidden with the controls. */
+        this.play = icon(PlayerIcon.PLAY, Localization.tr("Play"));
+        this.play.setBackground(shape(-1442840576, dp(36)));
+        this.play.setVisibility(8);
+        this.frame.addView(this.play, new FrameLayout.LayoutParams(dp(72), dp(72), Gravity.CENTER));
+        this.playBtn = icon(PlayerIcon.PLAY, Localization.tr("Play"));
 
         this.topBar = new LinearLayout(context);
         this.topBar.setOrientation(0);
@@ -223,27 +240,23 @@ public final class VideoPreview extends FrameLayout {
         row1.addView(this.time, new LinearLayout.LayoutParams(-2, -2));
         this.controls.addView(row1, new LinearLayout.LayoutParams(-1, -2));
 
-        LinearLayout row2 = new LinearLayout(context);
-        row2.setOrientation(0);
-        row2.setGravity(16);
-        this.play = icon(PlayerIcon.PLAY, Localization.tr("Play"));
-        row2.addView(this.play, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
-        TextView back = button("-10", Localization.tr("Back 10 seconds"));
-        back.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.5
+        this.row2 = new LinearLayout(context);
+        this.row2.setOrientation(0);
+        this.row2.setGravity(16);
+        this.rowBack = button("-10", Localization.tr("Back 10 seconds"));
+        this.rowBack.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.5
             @Override // android.view.View.OnClickListener
             public void onClick(View view) {
                 VideoPreview.this.seekBy(-10000L);
             }
         });
-        row2.addView(back, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
-        TextView forward = button("+10", Localization.tr("Forward 10 seconds"));
-        forward.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.6
+        this.rowForward = button("+10", Localization.tr("Forward 10 seconds"));
+        this.rowForward.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.6
             @Override // android.view.View.OnClickListener
             public void onClick(View view) {
                 VideoPreview.this.seekBy(10000L);
             }
         });
-        row2.addView(forward, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
         this.speedBtn = button("1×", Localization.tr("Playback speed"));
         this.speedBtn.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.7
             @Override // android.view.View.OnClickListener
@@ -251,15 +264,13 @@ public final class VideoPreview extends FrameLayout {
                 VideoPreview.this.showSpeedMenu();
             }
         });
-        row2.addView(this.speedBtn, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
-        this.audioBtn = icon(PlayerIcon.AUDIO, Localization.tr("Audio track"));
+        this.audioBtn = icon(PlayerIcon.HEADPHONES, Localization.tr("Audio track"));
         this.audioBtn.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.8
             @Override // android.view.View.OnClickListener
             public void onClick(View view) {
                 VideoPreview.this.showTrackMenu(C.TRACK_TYPE_AUDIO, Localization.tr("Audio track"));
             }
         });
-        row2.addView(this.audioBtn, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
         this.ccBtn = icon(PlayerIcon.SUBTITLE, Localization.tr("Subtitle track"));
         this.ccBtn.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.9
             @Override // android.view.View.OnClickListener
@@ -267,7 +278,6 @@ public final class VideoPreview extends FrameLayout {
                 VideoPreview.this.showTrackMenu(C.TRACK_TYPE_TEXT, Localization.tr("Subtitle track"));
             }
         });
-        row2.addView(this.ccBtn, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
         this.ratioBtn = icon(PlayerIcon.RATIO, Localization.tr("Aspect ratio"));
         this.ratioBtn.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.10
             @Override // android.view.View.OnClickListener
@@ -275,7 +285,6 @@ public final class VideoPreview extends FrameLayout {
                 VideoPreview.this.cycleRatio();
             }
         });
-        row2.addView(this.ratioBtn, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
         this.fullBtn = icon(PlayerIcon.FULLSCREEN, Localization.tr("Fullscreen"));
         this.fullBtn.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.11
             @Override // android.view.View.OnClickListener
@@ -283,11 +292,11 @@ public final class VideoPreview extends FrameLayout {
                 VideoPreview.this.toggleFullscreen();
             }
         });
-        row2.addView(this.fullBtn, new LinearLayout.LayoutParams(0, dp(44), 1.0f));
-        this.controls.addView(row2, new LinearLayout.LayoutParams(-1, -2));
+        layoutControls();
+        this.controls.addView(this.row2, new LinearLayout.LayoutParams(-1, -2));
         this.frame.addView(this.controls, new FrameLayout.LayoutParams(-1, -2, 80));
 
-        this.play.setOnClickListener(new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.12
+        View.OnClickListener playClick = new View.OnClickListener() { // from class: com.bkggds.videotool.VideoPreview.12
             @Override // android.view.View.OnClickListener
             public void onClick(View view) {
                 if (!VideoPreview.this.ready) {
@@ -300,7 +309,9 @@ public final class VideoPreview extends FrameLayout {
                 }
                 VideoPreview.this.showControls();
             }
-        });
+        };
+        this.play.setOnClickListener(playClick);
+        this.playBtn.setOnClickListener(playClick);
 
         this.seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() { // from class: com.bkggds.videotool.VideoPreview.13
             @Override // android.widget.SeekBar.OnSeekBarChangeListener
@@ -477,8 +488,33 @@ public final class VideoPreview extends FrameLayout {
         this.seek.setMax((int) Math.max(1L, Math.min(this.duration, 2147483647L)));
         this.status.setVisibility(8);
         showControls();
+        if (this.autoplay) {
+            this.player.play();
+        }
         this.handler.removeCallbacks(this.update);
         this.handler.post(this.update);
+    }
+
+    /* Play as soon as the video is ready: used when a video is opened from another app. */
+    public void startPlayback() {
+        this.autoplay = true;
+        if (this.ready) {
+            this.player.play();
+            showControls();
+        }
+    }
+
+    /* Subtitles sit just above the bottom edge; in fullscreen they move above the controls. */
+    private void subtitleInset(boolean controlsVisible) {
+        if (this.subtitle.getLayoutParams() == null) {
+            return;
+        }
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) this.subtitle.getLayoutParams();
+        int margin = dp(controlsVisible && this.fullscreenOn ? 96 : 24);
+        if (params.bottomMargin != margin) {
+            params.bottomMargin = margin;
+            this.subtitle.setLayoutParams(params);
+        }
     }
 
     /* JADX INFO: Access modifiers changed from: private */
@@ -506,15 +542,65 @@ public final class VideoPreview extends FrameLayout {
         this.subtitle.setVisibility(0);
     }
 
+    /* Compact preview keeps just play, speed and subtitles; fullscreen has every control. */
+    private void layoutControls() {
+        this.row2.removeAllViews();
+        int height = dp(this.fullscreenOn ? 44 : 34);
+        if (this.fullscreenOn) {
+            addControl(this.rowBack, height);
+            addControl(this.rowForward, height);
+            addControl(this.speedBtn, height);
+            addControl(this.audioBtn, height);
+            addControl(this.ccBtn, height);
+            addControl(this.ratioBtn, height);
+            addControl(this.fullBtn, height);
+        } else {
+            addControl(this.ratioBtn, height);
+            addControl(this.speedBtn, height);
+            addControl(this.playBtn, height);
+            addControl(this.ccBtn, height);
+            addControl(this.fullBtn, height);
+        }
+    }
+
+    private void addControl(View view, int height) {
+        this.row2.addView(view, new LinearLayout.LayoutParams(0, height, 1.0f));
+    }
+
+    /* Opened from a file manager: go straight to the big player. */
+    public void startFullscreen() {
+        post(new Runnable() { // from class: com.bkggds.videotool.VideoPreview.20
+            @Override // java.lang.Runnable
+            public void run() {
+                if (!VideoPreview.this.fullscreenOn) {
+                    VideoPreview.this.enterFullscreen();
+                }
+            }
+        });
+    }
+
+    /* Stop playback when the app leaves the foreground. */
+    public void pausePlayback() {
+        this.autoplay = false;
+        try {
+            if (this.player.isPlaying()) {
+                this.player.pause();
+            }
+        } catch (Exception e) {
+        }
+    }
+
     /* JADX INFO: Access modifiers changed from: private */
     public void showControls() {
         if (this.detached) {
             return;
         }
         this.controls.setVisibility(0);
+        this.play.setVisibility(this.ready && this.fullscreenOn ? 0 : 8);
         if (this.fullscreenOn) {
             this.topBar.setVisibility(0);
         }
+        subtitleInset(true);
         this.handler.removeCallbacks(this.hide);
         if (this.ready && this.player.isPlaying()) {
             this.handler.postDelayed(this.hide, 3500L);
@@ -526,6 +612,8 @@ public final class VideoPreview extends FrameLayout {
         if (this.controls.getVisibility() == 0) {
             this.controls.setVisibility(8);
             this.topBar.setVisibility(8);
+            this.play.setVisibility(8);
+            subtitleInset(false);
             this.handler.removeCallbacks(this.hide);
             return;
         }
@@ -684,6 +772,7 @@ public final class VideoPreview extends FrameLayout {
         this.moving = false;
         this.activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
         immersive(true);
+        layoutControls();
         this.fullBtn.setKind(PlayerIcon.EXIT_FULLSCREEN);
         this.fullBtn.setContentDescription(Localization.tr("Exit fullscreen"));
         requestLayout();
@@ -716,6 +805,8 @@ public final class VideoPreview extends FrameLayout {
             this.activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
             immersive(false);
         }
+        layoutControls();
+        this.play.setVisibility(8);
         this.fullBtn.setKind(PlayerIcon.FULLSCREEN);
         this.fullBtn.setContentDescription(Localization.tr("Fullscreen"));
         this.topBar.setVisibility(8);
@@ -872,6 +963,7 @@ public final class VideoPreview extends FrameLayout {
         this.controls.setVisibility(8);
         this.topBar.setVisibility(8);
         this.subtitle.setVisibility(8);
+        this.play.setVisibility(8);
         this.status.setText(Localization.tr("Preview unavailable. This device may not support the video codec. Subtitle extraction is still available."));
         this.status.setVisibility(0);
         this.video.setVisibility(4);

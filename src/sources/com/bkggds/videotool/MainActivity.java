@@ -107,6 +107,7 @@ public class MainActivity extends Activity {
     private LinearLayout fileNameBox;
     private PageScrollView pageScroll;
     private boolean saveAllTracks;
+    private boolean pendingPlay;
     private boolean scanningTracks;
     private LinearLayout screens;
     private View scrim;
@@ -246,6 +247,14 @@ public class MainActivity extends Activity {
     }
 
     @Override // android.app.Activity
+    protected void onPause() {
+        super.onPause();
+        View view = getWindow().getDecorView().findViewWithTag("previewPlayer");
+        if (view instanceof VideoPreview) {
+            ((VideoPreview) view).pausePlayback();
+        }
+    }
+
     protected void onDestroy() {
         Workflow.release(this);
         Navigation.release(this);
@@ -415,6 +424,7 @@ public class MainActivity extends Activity {
         showScreen(0);
         setStatus(Localization.tr("Pick a video from this device to begin."), false);
         Navigation.install(this);
+        handleViewIntent(getIntent());
         String crashLog = getSharedPreferences("bkggds_ui", 0).getString("crash_log", null);
         if (crashLog != null) {
             getSharedPreferences("bkggds_ui", 0).edit().remove("crash_log").apply();
@@ -637,6 +647,11 @@ public class MainActivity extends Activity {
             LinearLayout card2 = card(Localization.tr("Preview"), null);
             VideoPreview videoPreview = new VideoPreview(this, this.videoUri);
             videoPreview.setVideoTitle(queryDisplayName(this.videoUri));
+            if (this.pendingPlay) {
+                this.pendingPlay = false;
+                videoPreview.startPlayback();
+                videoPreview.startFullscreen();
+            }
             card2.addView(videoPreview);
             column.addView(card2);
         }
@@ -1297,6 +1312,50 @@ public class MainActivity extends Activity {
             return trim;
         }
         return trim + ".srt";
+    }
+
+    @Override // android.app.Activity
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleViewIntent(intent);
+    }
+
+    /* A video opened from a file manager ("Open with"): load it and play it right away. */
+    private void handleViewIntent(Intent intent) {
+        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction()) || intent.getData() == null) {
+            return;
+        }
+        Uri data = intent.getData();
+        try {
+            getContentResolver().takePersistableUriPermission(data, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception ignored) {
+        }
+        String displayName = queryDisplayName(data);
+        if (displayName == null || displayName.length() == 0) {
+            displayName = data.getLastPathSegment();
+        }
+        if (displayName == null || displayName.length() == 0) {
+            displayName = "video";
+        }
+        this.videoUri = data;
+        Workflow.reset(this);
+        this.tracks.clear();
+        this.cueCount = 0;
+        this.trackInfo = "";
+        this.editExtracted.setText("");
+        String base = displayName;
+        int dot = base.lastIndexOf(46);
+        if (dot > 0) {
+            base = base.substring(0, dot);
+        }
+        if (base.length() > 64) {
+            base = base.substring(0, 64);
+        }
+        this.editFileName.setText(base + ".srt");
+        this.pendingPlay = true;
+        showScreen(0);
+        setStatus(Localization.tr("Selected: ") + displayName, false);
     }
 
     @Override // android.app.Activity
