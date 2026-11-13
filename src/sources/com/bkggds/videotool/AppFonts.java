@@ -2,6 +2,7 @@ package com.bkggds.videotool;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.view.View;
@@ -35,9 +36,33 @@ public final class AppFonts {
     }
 
     public static Typeface typeface(Context context, String str, int i) {
+        if (FontCatalog.valid(str).equals("system") || Localization.isCjk()) {
+            return Typeface.create(Typeface.DEFAULT, i);
+        }
+        return load(context, str, i);
+    }
+
+    /* Preview follows the language picked in the settings dropdown, so a CJK sample still gets
+       glyphs: the bundled Latin fonts have none, the system fallback (Noto Sans CJK) does. */
+    public static Typeface previewTypeface(Context context, String str, String str2) {
+        Typeface load = load(context, str, 0);
+        String probe = "zh".equals(str2) ? "中" : ("ja".equals(str2) ? "あ" : ("ko".equals(str2) ? "한" : null));
+        if (probe != null && !supports(load, probe)) {
+            return Typeface.create(Typeface.DEFAULT, 0);
+        }
+        return load;
+    }
+
+    private static boolean supports(Typeface typeface, String str) {
+        Paint paint = new Paint();
+        paint.setTypeface(typeface);
+        return paint.hasGlyph(str);
+    }
+
+    private static Typeface load(Context context, String str, int i) {
         Typeface createFromAsset;
         String valid = FontCatalog.valid(str);
-        if (valid.equals("system") || Localization.isCjk()) {
+        if (valid.equals("system")) {
             return Typeface.create(Typeface.DEFAULT, i);
         }
         String str2 = String.valueOf(valid) + ":" + i;

@@ -16,6 +16,7 @@ import java.util.Locale;
 public class Localization implements View.OnClickListener {
     public static final String[] CODES = {"en", "zh", "ja", "ko", "vi"};
     public static final String[] NAMES = {"English", "中文", "日本語", "한국어", "Tiếng Việt"};
+    private static final String[] EN_NAMES = {"English", "Chinese", "Japanese", "Korean", "Vietnamese"};
     public static final String[] SUBTITLE_CODES = {"en", "vi", "zh", "zh-Hant", "ja", "ko", "fr", "de", "es", "it", "pt", "pt-BR", "ru", "uk", "th", "id", "ms", "ar", "hi", "tr", "nl", "pl", "sv", "da", "fi", "no", "cs", "el", "he", "hu", "ro"};
     private static final String PREFS = "bkggds_ui";
     private static final String PREF_LANG = "lang";
@@ -473,12 +474,19 @@ public class Localization implements View.OnClickListener {
         return str2;
     }
 
-    public static String[] languageNames() {
+    /* Endonyms for the language picker: "中文", never translated; the English name is added
+       in brackets only while the UI itself is English. */
+    public static String[] languageOptions() {
         String[] strArr = new String[CODES.length];
+        boolean englishUi = "en".equals(lang);
         for (int i = 0; i < CODES.length; i++) {
-            strArr[i] = displayName(CODES[i]);
+            strArr[i] = englishUi ? NAMES[i] + (i == 0 ? "" : " (" + EN_NAMES[i] + ")") : NAMES[i];
         }
         return strArr;
+    }
+
+    public static String[] languageNames() {
+        return languageOptions();
     }
 
     public static String[] subtitleLabels() {
